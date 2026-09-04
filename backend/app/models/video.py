@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime
-from datetime import datetime
+from datetime import datetime, timezone
 from app.core.database import Base
 
 class Video(Base):
@@ -13,4 +13,4 @@ class Video(Base):
     duration_sec = Column(Float)
     gate_accepted = Column(String)
     gate_reason = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

@@ -4,6 +4,9 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     app_name: str = "PersoLens API"
     environment: str = "development"
+    database_url: str
+    youtube_api_key: str
+    
     
     class Config:
         env_file = ".env"
