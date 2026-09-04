@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     database_url: str
     youtube_api_key: str
+    openai_api_key: str
     
     
     class Config:
