@@ -9,11 +9,11 @@ def download_audio(youtube_url:str) -> str:
     ydl_opts = {
         "format": "bestaudio/best",
         "outtmpl": output_path,
-        "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "wav"}],
+        "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3"}],
         "quiet": True,
     }
     
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([youtube_url])
     
-    return os.path.join(tmp_dir, "audio.wav")
+    return os.path.join(tmp_dir, "audio.mp3")

@@ -11,6 +11,13 @@ def check_gate(category_id:str, title:str) -> tuple[bool, str | None]:
         return False, "Title suggests non-speech content"
     return True, None
 
+def refine_gate_with_signal(transcript_text: str, speech_ratio: float) -> tuple[bool, str | None]:
+    if not transcript_text or transcript_text.strip() == "":
+        return False, "No meaningful transcript detected"
+    if speech_ratio < 0.15:
+        return False, "Very little speech detected in the audio"
+    return True, None
+
 def fetch_video_metadata(video_id: str) -> dict:
     response = httpx.get(
         "https://www.googleapis.com/youtube/v3/videos",
@@ -26,3 +33,4 @@ def fetch_video_metadata(video_id: str) -> dict:
         "title": item["snippet"]["title"],
         "category_id": item["snippet"]["categoryId"]
     }
+    

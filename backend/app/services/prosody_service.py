@@ -18,7 +18,7 @@ def extract_prosody_features(audio_path:str) -> dict:
     voiced_pitches = pitches[magnitudes > np.median(magnitudes)]
     
     return {
-        "speech_ratio": round(speech_ratio, 3),
+        "speech_ratio": round(float(speech_ratio), 3),
         "pause_count": len(pauses),
         "avg_pause_length_sec": round(float(np.mean(pauses)), 3) if pauses else 0.0,
         "avg_pitch_variation": round(float(np.std(voiced_pitches)), 3) if len(voiced_pitches) else 0.0,
