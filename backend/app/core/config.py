@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     database_url: str
     youtube_api_key: str
     openai_api_key: str
+    redis_url: str = "redis://localhost:6379/0"
     
     
     class Config:
