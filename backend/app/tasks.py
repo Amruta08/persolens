@@ -5,6 +5,7 @@ from app.services.audio_download import download_audio
 from app.services.transcript_service import transcribe
 from app.services.prosody_service import extract_prosody_features
 from app.services.content_gate import refine_gate_with_signal
+import json
 
 @celery_app.task
 def run_extraction(video_id:str):
@@ -16,7 +17,7 @@ def run_extraction(video_id:str):
         prosody = extract_prosody_features(audio_path)
         accepted, reason = refine_gate_with_signal(transcript["text"], prosody["speech_ratio"])
         
-        video.transcript_json = str(transcript)
+        video.transcript_json = json.dumps(transcript)
         video.speech_ratio = prosody["speech_ratio"]
         video.avg_pause_length_sec = prosody["avg_pause_length_sec"]
         video.avg_pitch_variation = prosody["avg_pitch_variation"]
