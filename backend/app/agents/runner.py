@@ -30,7 +30,10 @@ def run_pattern_agent_for_video(video_id:str) -> list[dict]:
                 "avg_pause_length_sec": video.avg_pause_length_sec,
                 "avg_pitch_variation": video.avg_pitch_variation,
             },
-            "candidate_patterns": [],  ## empty until the node fills it in
+            "candidate_patterns": [],  
+            "verified_patterns": [],
+            "retry_count": 0,
+            
         }
         
         result_state = pattern_graph.invoke(initial_state)
