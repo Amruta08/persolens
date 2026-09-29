@@ -9,6 +9,11 @@ from app.services.transcript_service import transcribe
 from app.services.prosody_service import extract_prosody_features
 from app.services.content_gate import refine_gate_with_signal
 from urllib.parse import urlparse, parse_qs
+from app.tasks import run_extraction
+from app.services.cache_service import get_cached_report, cache_report
+from app.core.celery_app import celery_app
+from celery.result import AsyncResult
+
 
 app = FastAPI(title=settings.app_name)
 
@@ -45,26 +50,20 @@ def ingest_video(youtube_url:str, db:Session=Depends(get_db)):
         "reason":reason
         }
 
+
 @app.post("/videos/{video_id}/extract")
 def extract_video(video_id: str, db:Session = Depends(get_db)):
-    video = db.query(Video).filter(Video.video_id == video_id).first()
-    if not video or video.gate_accepted != "accepted":
-        return {"error": "Video not found or did not pass the initial gate"}
+    cached = get_cached_report(video_id)
+    if cached:
+        return {"status": "cached", "result": cached}
+
+    task = run_extraction.delay(video_id)
+    return {"status": "queued", "job_id": task.id}
     
-    audio_path = download_audio(video.youtube_url)
-    transcript = transcribe(audio_path)
-    prosody = extract_prosody_features(audio_path)
-    
-    accepted, reason = refine_gate_with_signal(transcript["text"], prosody["speech_ratio"])
-    
-    video.transcript_json = str(transcript)
-    video.speech_ratio = prosody["speech_ratio"]
-    video.avg_pause_length_sec = prosody["avg_pause_length_sec"]
-    video.avg_pitch_variation = prosody["avg_pitch_variation"]
-    video.gate_accepted = "accepted" if accepted else "rejected"
-    video.gate_reason = reason
-    db.commit()
-    
-    return {"accepted": accepted, "reason": reason, "word_count": len(transcript["words"]), "prosody": prosody}
-    
-    
+
+@app.get("/jobs/{job_id}")
+def job_status(job_id: str):
+    result = AsyncResult(job_id, app=celery_app)
+    if result.ready() and result.successful():
+        cache_report(job_id, result.result)
+    return {"status": result.status, "result": result.result if result.ready() else None}

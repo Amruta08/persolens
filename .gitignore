@@ -4,3 +4,5 @@ extension/node_modules/
 .env
 *.pyc
 backend/cloud-sql-proxy.exe
+m.py
+sca.py
