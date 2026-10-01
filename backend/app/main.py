@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Depends
+import json
+from fastapi import FastAPI, Depends, HTTPException
 from app.core.config import settings
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -13,6 +14,8 @@ from app.tasks import run_extraction
 from app.services.cache_service import get_cached_report, cache_report
 from app.core.celery_app import celery_app
 from celery.result import AsyncResult
+from app.services.report_service import build_report
+from app.services.cache_service import get_cached_report, cache_report
 
 
 app = FastAPI(title=settings.app_name)
@@ -59,7 +62,28 @@ def extract_video(video_id: str, db:Session = Depends(get_db)):
 
     task = run_extraction.delay(video_id)
     return {"status": "queued", "job_id": task.id}
+
+@app.get("/videos/{video_id}/report")
+def get_report(video_id: str, db: Session = Depends(get_db)):
+    # Return already cached report is exists
+    cached = get_cached_report(video_id)
+    if cached:
+        return cached
+
+    # Default path if not cached
+    video = db.query(Video).filter(Video.video_id == video_id).first()
+    if video is None:
+        raise HTTPException(status_code=404, detail="Video not found")
+    if video.patterns_json is None:
+        raise HTTPException(status_code=404, detail="Report not available for this video yet")
     
+    verified_patterns = json.loads(video.patterns_json)
+    report = build_report(video, verified_patterns)
+
+    cache_report(video_id, report)
+    return report
+
+
 
 @app.get("/jobs/{job_id}")
 def job_status(job_id: str):

@@ -1,6 +1,7 @@
 import json
 from datetime, timezone
 
+# Converts raw seconds into MM:SS or H:MM:SS
 def format_timestamp(seconds: float) -> str:
     total_seconds = int(seconds)
     hours = total_seconds // 3600
@@ -28,4 +29,26 @@ def format_pattern(pattern: dict, youtube_url: str) -> dict:
         "timestamp_sec": pattern["timestamp_sec"],
         "timestamp_label": format_timestamp(pattern["timestamp_sec"]),
         "deep_link": build_deep_link(youtube_url, pattern["timestamp_sec"]),
+    }
+
+
+# Turns raw librosa numbers into display-read summary block
+def format_vocal_summary(video) -> dict:
+    return {
+        "speech_ratio": video.speech_ratio,
+        "avg_pause_length_sec": video.avg_pause_length_sec,
+        "avg_pitch_variation": video.avg_pitch_variation,
+    }
+
+
+# Main assembly function which takes video row and list of verified patterns and returns JSON-ready report
+def build_report(video, verified_patterns: list[dict]) -> dict:
+    return{
+        "video_id": video.video_id,
+        "title": video.title,
+        "youtube_url": video.youtube_url,
+        "generated_at": datetime.now(timezone.utc).isoformat(),  ## when this report was assembled
+        "vocal_summary": format_vocal_summary(video),
+        "pattern_count": len(verified_patterns),
+        "patterns": [format_pattern(p, video.youtube_url) for p in verified_patterns],
     }

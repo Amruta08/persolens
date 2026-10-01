@@ -1,3 +1,4 @@
+import json
 from app.core.celery_app import celery_app
 from app.core.database import SessionLocal
 from app.models.video import Video
@@ -5,7 +6,9 @@ from app.services.audio_download import download_audio
 from app.services.transcript_service import transcribe
 from app.services.prosody_service import extract_prosody_features
 from app.services.content_gate import refine_gate_with_signal
-import json
+from app.agents.runner import run_pattern_agent_for_video
+from app.services.report_service import build_report
+from app.services.cache_service import cache_report
 
 @celery_app.task
 def run_extraction(video_id:str):
@@ -24,7 +27,18 @@ def run_extraction(video_id:str):
         video.gate_accepted = "accepted" if accepted else "rejected"
         video.gate_reason = reason
         db.commit()
+
+        if not accepted:
+            return {"accepted":False, "reason":reason, "pattern_count":0}
         
-        return {"accepted":accepted, "reason":reason}
+        verified_patterns = run_pattern_agent_for_video(video_id)
+        report = build_report(video, verified_patterns)
+        video.patterns_json = json.dumps(verified_patterns)
+
+        db.commit()
+
+        cache_report(video_id, report)
+
+        return {"accepted":True, "reason":reason, , "pattern_count": len(verified_patterns)}
     finally:
         db.close()
