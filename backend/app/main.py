@@ -16,6 +16,10 @@ from app.core.celery_app import celery_app
 from celery.result import AsyncResult
 from app.services.report_service import build_report
 from app.services.cache_service import get_cached_report, cache_report
+from app.core.auth import get_current_user
+from app.services.rate_limit import check_rate_limit
+from app.services.quota_service import check_and_increment_quota
+from app.models.user import User
 
 
 app = FastAPI(title=settings.app_name)
@@ -29,7 +33,7 @@ def health_check():
     return {"status":"ok", "environment":settings.environment}
 
 @app.post("/videos/ingest")
-def ingest_video(youtube_url:str, db:Session=Depends(get_db)):
+def ingest_video(youtube_url:str, db:Session=Depends(get_db), current_user: User = Depends(get_current_user)):
     video_id = extract_video_id(youtube_url)
     metadata = fetch_video_metadata(video_id)
     accepted, reason = check_gate(metadata["category_id"], metadata["title"])
@@ -55,7 +59,11 @@ def ingest_video(youtube_url:str, db:Session=Depends(get_db)):
 
 
 @app.post("/videos/{video_id}/extract")
-def extract_video(video_id: str, db:Session = Depends(get_db)):
+def extract_video(video_id: str, db:Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+
+    check_rate_limit(current_user.id, "extract", max_requests=5, window_seconds=60)
+    check_and_increment_quota(current_user, db)
+
     cached = get_cached_report(video_id)
     if cached:
         return {"status": "cached", "result": cached}
@@ -64,7 +72,7 @@ def extract_video(video_id: str, db:Session = Depends(get_db)):
     return {"status": "queued", "job_id": task.id}
 
 @app.get("/videos/{video_id}/report")
-def get_report(video_id: str, db: Session = Depends(get_db)):
+def get_report(video_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Return already cached report is exists
     cached = get_cached_report(video_id)
     if cached:
