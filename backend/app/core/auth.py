@@ -1,6 +1,7 @@
 import jwt
 from jwt import PyJWKClient
 from fastapi import Header, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from app.core.config import settings
@@ -8,6 +9,7 @@ from app.core.database import get_db
 from app.models.user import User
 
 _jwks_client = PyJWKClient(settings.clerk_jwks_url)
+bearer_scheme = HTTPBearer(auto_error=False)
 
 # Verifies raw jwt string is signed by clerk and not expired and returns the decoded payload
 def verify_clerk_token(token: str) -> dict:
@@ -25,12 +27,11 @@ def verify_clerk_token(token: str) -> dict:
 
 
 # Pulls Authorization header off the request, verifies it and returns Clerk user ID
-def get_current_clerk_id(authorization: str = Header(None)) -> str:
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing or malformed Authorization header")
+def get_current_clerk_id(credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme)) -> str:
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="Missing bearer token")
     
-    token = authorization.removeprefix("Bearer ").strip()
-    payload = verify_clerk_token(token)
+    payload = verify_clerk_token(credentials.credentials)
     return payload["sub"]
 
 # Turns verfied clerk ID into a real user row in our database

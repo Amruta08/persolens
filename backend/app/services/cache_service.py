@@ -1,6 +1,6 @@
 import redis
 import json
-from app.core import settings
+from app.core.config import settings
 
 r = redis.from_url(settings.redis_url)
 

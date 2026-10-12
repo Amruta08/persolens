@@ -6,3 +6,5 @@ extension/node_modules/
 backend/cloud-sql-proxy.exe
 m.py
 sca.py
+smoke_test.py
+clerk-test.html

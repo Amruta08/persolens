@@ -1,5 +1,6 @@
 from app.core.database import Base
 from app.models.video import Video
+from app.models.user import User
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config

@@ -39,6 +39,6 @@ def run_extraction(video_id:str):
 
         cache_report(video_id, report)
 
-        return {"accepted":True, "reason":reason, , "pattern_count": len(verified_patterns)}
+        return {"accepted":True, "reason":reason, "pattern_count": len(verified_patterns)}
     finally:
         db.close()

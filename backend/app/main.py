@@ -67,7 +67,8 @@ def extract_video(video_id: str, db:Session = Depends(get_db), current_user: Use
     cached = get_cached_report(video_id)
     if cached:
         return {"status": "cached", "result": cached}
-
+    
+    check_and_increment_quota(current_user, db)
     task = run_extraction.delay(video_id)
     return {"status": "queued", "job_id": task.id}
 
@@ -96,6 +97,6 @@ def get_report(video_id: str, db: Session = Depends(get_db), current_user: User 
 @app.get("/jobs/{job_id}")
 def job_status(job_id: str):
     result = AsyncResult(job_id, app=celery_app)
-    if result.ready() and result.successful():
-        cache_report(job_id, result.result)
+    if result.failed():
+        return {"status":result.status, "error": str(result.result)}
     return {"status": result.status, "result": result.result if result.ready() else None}
