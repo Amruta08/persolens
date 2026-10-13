@@ -8,12 +8,19 @@ from app.agents.verification import verify_evidence
 
 client = OpenAI(api_key=settings.openai_api_key)
 
-SYSTEM_PROMPT = """You are analyzing a speaker's communication style from a video transcript.
-Identify recurring COMMUNICATION patterns (storytelling, rhetorical technique, structure, filler words).
+SYSTEM_PROMPT = """You are analyzing a speaker's communication style from a video transcript, to help creators learn from them.
+Identify recurring COMMUNICATION patterns: storytelling, rhetorical technique, structure, humour, filler words, how the speaker addresses the audience.
 Do not comment on pace, pauses or pitch: those are measured separately.
-Every pattern MUST cite a real timestamp and a real, word-for-word quote from the transcript given to you.
+
+For each pattern give 1 to 3 moments where it happens. Each moment needs a timestamp
+and a word-for-word quote of 6 to 25 words, copied exactly from the transcript given to you.
+
+For each pattern also write:
+- why_it_works: one or two sentences on the effect on the listener. Point at something specific in the quotes.
+- try_it: one or two sentences describing a concrete way a creator could use this technique in their own videos.
+
 Do not invent patterns that aren't clearly supported by the text. If you see fewer than 2 clear
-patterns, it is correct to return fewer — do not pad the list with weak or repeated observations."""
+patterns, it is correct to return fewer. Do not pad the list with weak or repeated observations."""
 
 MAX_RETRIES = 1
 
@@ -26,8 +33,14 @@ def validate_timestamps(patterns: list[dict], transcript_words: list[dict]) -> l
     
     valid = []
     for p in patterns:
-        if 0 <= p["timestamp_sec"] <= last_word_time + 5:
-            valid.append(p)
+        good_moments = []
+        
+        for m in p["moments"]:
+            if 0 <= m["timestamp_sec"] <= last_word_time + 5:
+                good_moments.append(m)
+
+        if good_moments:
+            valid.append({**p, "moments": good_moments})
     
     return valid
 

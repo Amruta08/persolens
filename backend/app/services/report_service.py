@@ -20,16 +20,30 @@ def build_deep_link(youtube_url:str, timestamp_sec:float) -> str:
     return f"{youtube_url}{separator}t={int(timestamp_sec)}s"
 
 
+# Turns one moment into a display ready shape
+def format_moment(moment: dict, youtube_url: str) -> dict:
+    return {
+        "quote": moment["quote"],
+        "match": moment.get("match"),   
+        "timestamp_sec": moment["timestamp_sec"],
+        "timestamp_label": format_timestamp(moment["timestamp_sec"]),
+        "deep_link": build_deep_link(youtube_url, moment["timestamp_sec"]),
+    }
+
+
 # Turns one verified pattern into display-ready shape the extension wants
 def format_pattern(pattern: dict, youtube_url: str) -> dict:
+    moments = pattern.get("moments")
+    if moments is None:
+        moments = [{"timestamp_sec": pattern["timestamp_sec"], "quote": pattern["quote_or_evidence"]}]
+
     return {
         "channel": pattern["channel"],
         "pattern_name": pattern["pattern_name"],
         "description": pattern["description"],
-        "quote_or_evidence": pattern["quote_or_evidence"],
-        "timestamp_sec": pattern["timestamp_sec"],
-        "timestamp_label": format_timestamp(pattern["timestamp_sec"]),
-        "deep_link": build_deep_link(youtube_url, pattern["timestamp_sec"]),
+        "why_it_works": pattern.get("why_it_works"),
+        "try_it": pattern.get("try_it"),
+        "moments": [format_moment(m, youtube_url) for m in moments],
     }
 
 # Reads measured vocal numbers saved during extraction

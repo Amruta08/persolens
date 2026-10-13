@@ -57,30 +57,101 @@ function formatClock(totalSeconds) {
 }
 
 // Collapsible card for a speech pattern
+// function speechCard(p, openByDefault) {
+//   const card = el("details", "pl-acc");
+//   card.open = openByDefault;
+
+//   const summary = el("summary");
+//   summary.append(el("span", "pl-acc-name", p.pattern_name), el("span", "pl-chip", "1 moment"));
+//   card.append(summary);
+
+//   const body = el("div", "pl-acc-body");
+//   body.append(el("p", "pl-desc", p.description));
+
+//   const quote = el("button", "pl-inst");
+//   quote.type = "button";
+//   quote.append(el("span", "pl-ts", p.timestamp_label), el("span", "pl-q", p.quote_or_evidence));
+//   quote.addEventListener("click", () => seekTo(p.timestamp_sec));
+
+//   const jump = el("button", "pl-jump", `▶ Jump to ${p.timestamp_label}`);
+//   jump.type = "button";
+//   jump.addEventListener("click", () => seekTo(p.timestamp_sec));
+
+//   body.append(quote, jump);
+//   card.append(body);
+//   return card;
+// }
+
+let learnMode = false;
+
+// Switch in panel header
+function learnSwitch(panel) {
+  const btn = el("button", "pl-switch");
+  btn.type = "button";
+  btn.setAttribute("role", "switch");
+  btn.setAttribute("aria-checked", String(learnMode));
+  btn.append(el("span", "", "Learn mode"), el("span", "pl-track"));
+
+  btn.addEventListener("click", () => {
+    learnMode = !learnMode;
+    btn.setAttribute("aria-checked", String(learnMode));
+    panel.classList.toggle("pl-learning", learnMode); // CSS shows or hides the .pl-learn blocks
+  });
+  return btn;
+}
+
+// One row for one moment
+function momentRow(m) {
+  const row = el("button", "pl-inst");
+  row.type = "button";
+  row.append(el("span", "pl-ts", "▶ " + m.timestamp_label), el("span", "pl-q", m.quote));
+
+  if (typeof m.match === "number") {
+    const percent = Math.round(m.match * 100);
+    row.append(el("span", "pl-match", percent + "% of these words found in the transcript"));
+  }
+
+  row.addEventListener("click", () => seekTo(m.timestamp_sec));
+  return row;
+}
+
+// Why it works box
+function learnBlock(p) {
+  if (!p.why_it_works && !p.try_it) return null;
+
+  const box = el("div", "pl-learn");
+  box.append(el("div", "pl-learn-tag", "AI SUGGESTION"));
+
+  if (p.try_it) {
+    box.append(el("div", "pl-learn-h", "Try it"), el("p", "pl-learn-t", p.try_it));
+  }
+  return box;
+}
+
+// Collapsible card for speech pattern
 function speechCard(p, openByDefault) {
   const card = el("details", "pl-acc");
   card.open = openByDefault;
 
+  const count = p.moments.length;
+  const chipText = count === 1 ? "1 moment" : count + " moments";
+
   const summary = el("summary");
-  summary.append(el("span", "pl-acc-name", p.pattern_name), el("span", "pl-chip", "1 moment"));
+  summary.append(el("span", "pl-acc-name", p.pattern_name), el("span", "pl-chip", chipText));
   card.append(summary);
 
   const body = el("div", "pl-acc-body");
   body.append(el("p", "pl-desc", p.description));
 
-  const quote = el("button", "pl-inst");
-  quote.type = "button";
-  quote.append(el("span", "pl-ts", p.timestamp_label), el("span", "pl-q", p.quote_or_evidence));
-  quote.addEventListener("click", () => seekTo(p.timestamp_sec));
+  p.moments.forEach((m) => body.append(momentRow(m)));
 
-  const jump = el("button", "pl-jump", `▶ Jump to ${p.timestamp_label}`);
-  jump.type = "button";
-  jump.addEventListener("click", () => seekTo(p.timestamp_sec));
+  const learn = learnBlock(p);
+  if (learn) body.append(learn);
 
-  body.append(quote, jump);
   card.append(body);
   return card;
 }
+
 
 // One card for a vocal pattern
 function vocalCard(p) {
@@ -102,14 +173,19 @@ function vocalCard(p) {
 function renderReport(report) {
   const panel = getPanel();
   panel.replaceChildren();
+  panel.classList.toggle("pl-learning", learnMode)
 
-  const speech = report.patterns.filter((p) => p.channel === "communication");
-  const vocal = report.patterns.filter((p) => p.channel === "vocal");
-  if (speech.length + vocal.length === 0) return showStatus("No patterns were found in this video.");
+  const speech = report.patterns
+  //const vocal = report.patterns.filter((p) => p.channel === "vocal");
+  //if (speech.length + vocal.length === 0) return showStatus("No patterns were found in this video.");
 
   //header
   const head = el("div", "pl-head");
-  head.append(el("div", "pl-brand", "PERSOLENS"), el("div", "pl-title", report.title || "This video"));
+  
+  const brand = el("div", "pl-brand");
+  brand.append(el("span", "", "PERSOLENS"), learnSwitch(panel));
+  head.append(brand, el("div", "pl-title", report.title || "This video"));
+
   const meta = el("div", "pl-meta");
 
   const video = document.querySelector("video");
@@ -128,12 +204,25 @@ function renderReport(report) {
     meta.append(el("span", "", speakingMin + " min speaking · " + quietMin + " min quiet"));
   }
 
-  if (speech.length > 0) {
+  // if (speech.length > 0) {
+  //   let word = "quotes";
+  //   if (speech.length === 1) {
+  //     word = "quote";
+  //   }
+  //   const text = "✓ " + speech.length + " " + word + " verified";
+  //   meta.append(el("span", "pl-verified", text));
+  // }
+
+  // Count quotes
+  let quoteCount = 0;
+  speech.forEach((p) => { quoteCount += p.moments.length; });
+
+  if (quoteCount > 0) {
     let word = "quotes";
-    if (speech.length === 1) {
+    if (quoteCount === 1) {
       word = "quote";
     }
-    const text = "✓ " + speech.length + " " + word + " verified";
+    const text = "✓ " + quoteCount + " " + word + " verified";
     meta.append(el("span", "pl-verified", text));
   }
 
