@@ -145,8 +145,9 @@
 
 .pl-meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 4px 8px;
   margin-top: 6px;
   color: var(--mute);
   font-size: 12px;

@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Literal
 
 class CandidatePattern(BaseModel):
-    channel: Literal["communication", "vocal"]
+    channel: Literal["communication"]
     pattern_name: str
     description: str
     timestamp_sec: float

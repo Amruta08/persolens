@@ -93,7 +93,7 @@ function vocalCard(p) {
   body.append(
     el("p", "pl-desc", p.description),
     el("div", "pl-meas", p.quote_or_evidence),
-    el("p", "pl-proof", "Measured from the audio")
+    el("p", "pl-proof", "Computed from the recording")
   );
   card.append(body);
   return card;
@@ -118,6 +118,14 @@ function renderReport(report) {
       const label = formatClock(video.duration) + " analyzed";
       meta.append(el("span", "", label));
     }
+  }
+
+  // Minutes spent talking vs quiet
+  const vocalSummary = report.vocal_summary;
+  if (vocalSummary && typeof vocalSummary.speech_seconds === "number" && typeof vocalSummary.silent_seconds === "number") {
+    const speakingMin = (vocalSummary.speech_seconds / 60).toFixed(1);
+    const quietMin = (vocalSummary.silent_seconds / 60).toFixed(1);
+    meta.append(el("span", "", speakingMin + " min speaking · " + quietMin + " min quiet"));
   }
 
   if (speech.length > 0) {

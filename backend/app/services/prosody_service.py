@@ -5,12 +5,9 @@ PAUSE_MIN_SEC = 0.3
 LONG_PAUSE_SEC = 1.0
 MIN_VOICED_FRAMES = 50
 
-
-
 def extract_prosody_features(audio_path:str) -> dict:
     y, sr = librosa.load(audio_path, sr=16000, mono=True)
     total_duration = len(y) / sr
-    
     
     intervals = librosa.effects.split(y, top_db=30)
     voiced_duration = sum((end - start) for start, end in intervals) / sr
@@ -42,6 +39,7 @@ def extract_prosody_features(audio_path:str) -> dict:
         sr=sr,
     )
     
+    # Numpy mask to keep only entries where voiced flag is true
     voiced_f0 = f0[voiced_flag & ~np.isnan(f0)]
     
     pitch_variation = 0.0
@@ -60,9 +58,7 @@ def extract_prosody_features(audio_path:str) -> dict:
         "long_pause_count": long_pause_count,
         "avg_pause_length_sec": round(avg_pause, 3),
         "pitch_variation_semitones": round(pitch_variation, 2),
-    }
-    
-            
+    }    
 
 # Compute words per minute
 def compute_pace(words: list[dict]) -> dict:

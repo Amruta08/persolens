@@ -3,15 +3,15 @@ from openai import OpenAI
 from app.core.config import settings
 from app.agents.schemas import PatternProposals
 from app.agents.state import AnalysisState
-from app.agents.formatting import format_transcript_with_timestamps, format_prosody_summary
+from app.agents.formatting import format_transcript_with_timestamps
 from app.agents.verification import verify_evidence
 
 client = OpenAI(api_key=settings.openai_api_key)
 
 SYSTEM_PROMPT = """You are analyzing a speaker's communication style from a video transcript.
-Identify recurring COMMUNICATION patterns (storytelling, rhetorical technique, structure, filler words)
-and VOCAL patterns (pacing, pauses, pitch, emphasis) — using the vocal-metrics summary provided.
-Every pattern MUST cite a real timestamp and a real quote from the transcript given to you.
+Identify recurring COMMUNICATION patterns (storytelling, rhetorical technique, structure, filler words).
+Do not comment on pace, pauses or pitch: those are measured separately.
+Every pattern MUST cite a real timestamp and a real, word-for-word quote from the transcript given to you.
 Do not invent patterns that aren't clearly supported by the text. If you see fewer than 2 clear
 patterns, it is correct to return fewer — do not pad the list with weak or repeated observations."""
 
@@ -34,14 +34,10 @@ def validate_timestamps(patterns: list[dict], transcript_words: list[dict]) -> l
 
 def propose_patterns(state: AnalysisState) -> dict:
     transcript_text = format_transcript_with_timestamps(state["transcript_words"])
-    prosody_text = format_prosody_summary(state["prosody"])
     
     user_prompt = f"""
     TRANSCRIPT (timestamped chunks): 
     {transcript_text}
-    
-    VOCAL METRICS:
-    {prosody_text}
     """
     
     completion = client.beta.chat.completions.parse(

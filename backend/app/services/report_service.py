@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timezone
+from app.services.vocal_patterns import build_vocal_patterns
 
 # Converts raw seconds into MM:SS or H:MM:SS
 def format_timestamp(seconds: float) -> str:
@@ -31,18 +32,40 @@ def format_pattern(pattern: dict, youtube_url: str) -> dict:
         "deep_link": build_deep_link(youtube_url, pattern["timestamp_sec"]),
     }
 
+# Reads measured vocal numbers saved during extraction
+def local_vocal_metrics(video) -> dict:
+    if not video.vocal_json:
+        return {}
+    return json.loads(video.vocal_json)
+
 
 # Turns raw librosa numbers into display-read summary block
 def format_vocal_summary(video) -> dict:
     return {
         "speech_ratio": video.speech_ratio,
-        "avg_pause_length_sec": video.avg_pause_length_sec,
-        "avg_pitch_variation": video.avg_pitch_variation,
+        "speech_seconds": metrics.get("speech_seconds"),
+        "silent_seconds": metrics.get("silent_seconds"),
+        "words_per_min": metrics.get("words_per_min"),
+        "pauses_per_min": metrics.get("pauses_per_min"),
+        "pitch_variation_semitones": metrics.get("pitch_variation_semitones"),
     }
 
 
 # Main assembly function which takes video row and list of verified patterns and returns JSON-ready report
 def build_report(video, verified_patterns: list[dict]) -> dict:
+
+    # Speech patterns from llm
+    speech_patterns = []
+    for p in verified_patterns:
+        if p["channel"] == "communication":
+            speech_patterns.append(format_pattern(p, video.youtube_url))
+    
+    # vocal patterns built from measurements
+    vocal_patterns = build_vocal_patterns(load_vocal_metrics(video), video.youtube_url)
+
+    all_patterns = speech_patterns + vocal_patterns
+
+
     return{
         "video_id": video.video_id,
         "title": video.title,
@@ -50,5 +73,5 @@ def build_report(video, verified_patterns: list[dict]) -> dict:
         "generated_at": datetime.now(timezone.utc).isoformat(),  ## when this report was assembled
         "vocal_summary": format_vocal_summary(video),
         "pattern_count": len(verified_patterns),
-        "patterns": [format_pattern(p, video.youtube_url) for p in verified_patterns],
+        "patterns": all_patterns,
     }

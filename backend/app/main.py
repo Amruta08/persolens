@@ -62,7 +62,6 @@ def ingest_video(youtube_url:str, db:Session=Depends(get_db), current_user: User
 def extract_video(video_id: str, db:Session = Depends(get_db), current_user: User = Depends(get_current_user)):
 
     check_rate_limit(current_user.id, "extract", max_requests=5, window_seconds=60)
-    check_and_increment_quota(current_user, db)
 
     cached = get_cached_report(video_id)
     if cached:

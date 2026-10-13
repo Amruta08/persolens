@@ -19,3 +19,4 @@ class Video(Base):
     gate_reason = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     patterns_json = Column(Text, nullable=True)
+    vocal_json = Column(Text, nullable=True)
