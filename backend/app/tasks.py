@@ -32,8 +32,8 @@ def report_progress(task, step_number:int) -> None:
         },
     )
 
-@celery_app.task
-def run_extraction(video_id:str):
+@celery_app.task(bind=True)
+def run_extraction(self, video_id:str):
     db = SessionLocal()
     try:
         video = db.query(Video).filter(Video.video_id == video_id).first()

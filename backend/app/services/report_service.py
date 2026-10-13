@@ -47,7 +47,7 @@ def format_pattern(pattern: dict, youtube_url: str) -> dict:
     }
 
 # Reads measured vocal numbers saved during extraction
-def local_vocal_metrics(video) -> dict:
+def load_vocal_metrics(video) -> dict:
     if not video.vocal_json:
         return {}
     return json.loads(video.vocal_json)
@@ -55,6 +55,7 @@ def local_vocal_metrics(video) -> dict:
 
 # Turns raw librosa numbers into display-read summary block
 def format_vocal_summary(video) -> dict:
+    metrics = load_vocal_metrics(video)
     return {
         "speech_ratio": video.speech_ratio,
         "speech_seconds": metrics.get("speech_seconds"),
@@ -86,6 +87,6 @@ def build_report(video, verified_patterns: list[dict]) -> dict:
         "youtube_url": video.youtube_url,
         "generated_at": datetime.now(timezone.utc).isoformat(),  ## when this report was assembled
         "vocal_summary": format_vocal_summary(video),
-        "pattern_count": len(verified_patterns),
+        "pattern_count": len(all_patterns),
         "patterns": all_patterns,
     }

@@ -20,5 +20,5 @@ dependencies = [
     "redis>=8.1.0",
     "sqlalchemy>=2.0.52",
     "uvicorn>=0.52.4",
-    "yt-dlp>=2026.8.19",
+    "yt-dlp[default]>=2026.8.19",
 ]

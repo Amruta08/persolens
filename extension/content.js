@@ -122,6 +122,10 @@ function learnBlock(p) {
   const box = el("div", "pl-learn");
   box.append(el("div", "pl-learn-tag", "AI SUGGESTION"));
 
+  if (p.why_it_works) {
+    box.append(el("div", "pl-learn-h", "Why it works"), el("p", "pl-learn-t", p.why_it_works));
+  }
+
   if (p.try_it) {
     box.append(el("div", "pl-learn-h", "Try it"), el("p", "pl-learn-t", p.try_it));
   }
@@ -175,9 +179,9 @@ function renderReport(report) {
   panel.replaceChildren();
   panel.classList.toggle("pl-learning", learnMode)
 
-  const speech = report.patterns
-  //const vocal = report.patterns.filter((p) => p.channel === "vocal");
-  //if (speech.length + vocal.length === 0) return showStatus("No patterns were found in this video.");
+  const speech = report.patterns.filter((p) => p.channel === "communication");
+  const vocal = report.patterns.filter((p) => p.channel === "vocal");
+  if (speech.length + vocal.length === 0) return showStatus("No patterns were found in this video.");
 
   //header
   const head = el("div", "pl-head");
@@ -253,7 +257,7 @@ function renderReport(report) {
   }
 }
 
-function showProgress(progress, elapseMs){
+function showProgress(progress, elapsedMs){
   const panel = getPanel();
   let fill = panel.querySelector(".pl-bar-fill");
 

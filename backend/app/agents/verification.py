@@ -2,7 +2,7 @@ import re
 from difflib import SequenceMatcher
 
 WINDOW_SEC = 8.0
-MATCH_THRESHOLD = 0.5
+MATCH_THRESHOLD = 0.7
 MIN_QUOTE_WORDS = 3
 MAX_MOMENTS = 3
 
@@ -72,25 +72,25 @@ def verify_evidence(state: dict) -> dict:
 
 
 
-def get_transcript_window(transcript_words: list[dict], timestamp_sec: float) -> str:
-    nearby_words = [
-        w["word"] for w in transcript_words
-        if abs(w["start"] - timestamp_sec) <= WINDOW_SEC   # only words close in time to the claim
-    ]
-    return " ".join(nearby_words)
+# def get_transcript_window(transcript_words: list[dict], timestamp_sec: float) -> str:
+#     nearby_words = [
+#         w["word"] for w in transcript_words
+#         if abs(w["start"] - timestamp_sec) <= WINDOW_SEC   # only words close in time to the claim
+#     ]
+#     return " ".join(nearby_words)
 
 
-def quote_is_supported(pattern: dict, transcript_words: list[dict]) -> bool:
-    window_text = get_transcript_window(transcript_words, pattern["timestamp_sec"])
-    if not window_text:
-        return False
+# def quote_is_supported(pattern: dict, transcript_words: list[dict]) -> bool:
+#     window_text = get_transcript_window(transcript_words, pattern["timestamp_sec"])
+#     if not window_text:
+#         return False
     
-    similarity = SequenceMatcher(
-        None,
-        pattern["quote_or_evidence"].lower(),
-        window_text.lower()
-    ).ratio()
+#     similarity = SequenceMatcher(
+#         None,
+#         pattern["quote_or_evidence"].lower(),
+#         window_text.lower()
+#     ).ratio()
 
-    return similarity >= MATCH_THRESHOLD
+#     return similarity >= MATCH_THRESHOLD
 
 
