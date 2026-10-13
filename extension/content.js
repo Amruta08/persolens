@@ -253,22 +253,53 @@ function renderReport(report) {
   }
 }
 
+function showProgress(progress, elapseMs){
+  const panel = getPanel();
+  let fill = panel.querySelector(".pl-bar-fill");
+
+  if (!fill) {
+    panel.replaceChildren();
+
+    const top = el("div", "pl-prog-top");
+    top.append(el("span", "pl-prog-step"), el("span", "pl-prog-time"));
+
+    const track = el("div", "pl-bar");
+    fill = el("div", "pl-bar-fill");
+    track.append(fill);
+
+    const note = el("p", "pl-prog-note", "The bar moves when a stage finishes, so it can sit still for a while on the slow ones.");
+
+    const wrap = el("div", "pl-prog");
+    wrap.append(top, track, note);
+    panel.append(wrap);
+  }
+
+  const stepText = "Step " + progress.step_number + " of " + progress.total_steps + " · " + progress.step;
+  panel.querySelector(".pl-prog-step").textContent = stepText;
+  panel.querySelector(".pl-prog-time").textContent = formatClock(elapsedMs / 1000);
+  fill.style.width = (progress.percent || 0) + "%";
+}
+
 // Waiting for background job
 async function waitForJob(jobId) {
-  const deadline = Date.now() + 20 * 60 * 1000;
+  const startedAt = Date.now();
+  const deadline = startedAt + 20 * 60 * 1000;
   while (Date.now() < deadline) {
     const res = await api(`/jobs/${jobId}`);
     if (!res.ok) throw new Error(`Job check failed (HTTP ${res.status})`);
 
-    const { status, error } = res.data;
-    if (status === "SUCCESS") return;
+    const { status, error, progress, result } = res.data;
+    if (status === "SUCCESS") return result;
     if (status === "FAILURE") throw new Error(error || "The extraction failed");
 
-    showStatus(
-      status === "PENDING"
-        ? "Waiting for the worker to pick this up…"
-        : "Analyzing the video… this takes 1 to 3 minutes"
-    );
+    if (status === "PROGRESS" && progress) {
+      showProgress(progress, Date.now() - startedAt);
+    } else if (status === "PENDING") {
+      showStatus("Waiting for the worker to pick this up…");
+    } else {
+      showStatus("Analyzing the video…");
+    }
+
     await sleep(2000);
   }
   throw new Error("Timed out after 20 minutes");
@@ -304,7 +335,11 @@ async function analyze() {
       return;
     }
 
-    await waitForJob(next.data.job_id);
+    const outcome = await waitForJob(next.data.job_id);
+    if (outcome && outcome.accepted === false) {
+      showStatus("This video can't be analyzed: " + outcome.reason, true);
+      return;
+    }
 
     next = await api(`/videos/${videoId}/report`);
     if (!next.ok) throw new Error(`Couldn't load the finished report (HTTP ${next.status})`);

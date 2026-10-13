@@ -95,7 +95,14 @@ def get_report(video_id: str, db: Session = Depends(get_db), current_user: User 
 
 @app.get("/jobs/{job_id}")
 def job_status(job_id: str):
-    result = AsyncResult(job_id, app=celery_app)
-    if result.failed():
-        return {"status":result.status, "error": str(result.result)}
-    return {"status": result.status, "result": result.result if result.ready() else None}
+
+    # one read from Redis
+    meta = celery_app.backend.get_task_meta(job_id)
+    status = meta["status"]
+    info = meta["result"]
+
+    if status == "FAILURE":
+        return {"status": status, "error": str(info)}
+    if status == "PROGRESS":
+        return {"status": status, "progress": info}
+    return {"status": status, "result": info if status == "SUCCESS" else None}

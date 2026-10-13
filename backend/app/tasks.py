@@ -10,14 +10,43 @@ from app.agents.runner import run_pattern_agent_for_video
 from app.services.report_service import build_report
 from app.services.cache_service import cache_report
 
+# Stages of extraction
+STEPS = [
+    ("Downloading the audio", 5),
+    ("Transcribing the speech", 20),
+    ("Measuring the voice", 40),
+    ("Finding speaking patterns", 70),
+    ("Building the report", 95),
+]
+
+# Tells celery this job is stage number step_number
+def report_progress(task, step_number:int) -> None:
+    label, percent = STEPS[step_number - 1]
+    task.update_state(
+        state="PROGRESS",
+        meta={
+            "step": label,
+            "step_number": step_number,
+            "total_steps": len(STEPS),
+            "percent": percent,
+        },
+    )
+
 @celery_app.task
 def run_extraction(video_id:str):
     db = SessionLocal()
     try:
         video = db.query(Video).filter(Video.video_id == video_id).first()
+
+        report_progress(self, 1)
         audio_path = download_audio(video.youtube_url)
+
+        report_progress(self, 2)
         transcript = transcribe(audio_path)
+
+        report_progress(self, 3)
         prosody = extract_prosody_features(audio_path)
+
         pace = compute_pace(transcript["words"])
         accepted, reason = refine_gate_with_signal(transcript["text"], prosody["speech_ratio"])
         
@@ -34,10 +63,12 @@ def run_extraction(video_id:str):
         if not accepted:
             return {"accepted":False, "reason":reason, "pattern_count":0}
         
+        report_progress(self, 4)
         verified_patterns = run_pattern_agent_for_video(video_id)
+
+        report_progress(self, 5)
         report = build_report(video, verified_patterns)
         video.patterns_json = json.dumps(verified_patterns)
-
         db.commit()
 
         cache_report(video_id, report)
