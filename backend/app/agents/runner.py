@@ -37,6 +37,6 @@ def run_pattern_agent_for_video(video_id:str) -> list[dict]:
         }
         
         result_state = pattern_graph.invoke(initial_state)
-        return result_state["candidate_patterns"]
+        return result_state["verified_patterns"]
     finally:
         db.close()
